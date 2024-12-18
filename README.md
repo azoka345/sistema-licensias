@@ -61,6 +61,16 @@ en donde se iran guardando las lisensias creadas
 
 ![image](https://github.com/user-attachments/assets/975eb226-706b-41ed-92fe-142784e8c51c)
 
+aqui se resgistran lso correos para poder enviarlos 
+
+![image](https://github.com/user-attachments/assets/22223877-d060-476d-817e-d79a108b476d)
+
+aqui se envia el correo
+
+![image](https://github.com/user-attachments/assets/c7db2397-0dd0-4192-912c-f5a1e2507f11)
+
+
+
 
 CLASES DEL PRYECTO
 
@@ -608,4 +618,6 @@ public static void mostrarLicenciasParaPDF(JFrame ventanaAnterior) {
 }
 
 ESTE METODO LO QUE HACE ES QUE TE DEJA VER LOS REGISTROS EN PDF PARA QUE SE PUEDAN DESCARGAR
-  
+
+
+URL del video: https://youtu.be/bf16oZhJ9Rc 
