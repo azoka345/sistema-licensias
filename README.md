@@ -63,7 +63,9 @@ en donde se iran guardando las lisensias creadas
 
 
 CLASES DEL PRYECTO
+
 public static void mostrarVentanaInicioSesion() {
+
     JFrame ventanaInicio = new JFrame("Seleccione Tipo de Usuario");
     ventanaInicio.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     ventanaInicio.setSize(400, 300); // Ajustar tamaño para más espacio
@@ -133,11 +135,13 @@ public static void mostrarVentanaInicioSesion() {
     });
 }
 
+
 Este metodo lo que hace es que muestra la ventana de donde debemos de iniciar sesion como administrador o usuario
 
 
 
 public static void establecerConexion() {
+
         try {
             String url = "jdbc:mysql://localhost:3306/sistema_licensias";
             String usuario = "root"; // Cambia esto por tu usuario de MySQL
@@ -302,4 +306,306 @@ public static void establecerConexion() {
 
 
 
+public static void enviarCorreo(JFrame ventanaAnterior) {
+
+    // Crear ventana
+    JFrame ventanaEnvio = new JFrame("ENVIAR CORREO");
+    ventanaEnvio.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    ventanaEnvio.setSize(400, 200);
+    ventanaEnvio.setLayout(new GridLayout(3, 2, 5, 5));
+    ventanaEnvio.setLocationRelativeTo(null);
+
+    // Componentes
+    JLabel labelDestinatario = new JLabel("Correo del destinatario:");
+    JTextField campoDestinatario = new JTextField();
+
+    JButton botonSeleccionarArchivo = new JButton("Seleccionar Archivo");
+    JLabel labelArchivoSeleccionado = new JLabel("Ningún archivo seleccionado");
+
+    JButton botonEnviar = new JButton("Enviar");
+    JButton botonCancelar = new JButton("Cancelar");
+
+    // Contenedor para el archivo seleccionado
+    final File[] archivoSeleccionado = {null};
+
+    // Acción para seleccionar archivo
+    botonSeleccionarArchivo.addActionListener(e -> {
+        JFileChooser fileChooser = new JFileChooser();
+        int resultado = fileChooser.showOpenDialog(ventanaEnvio);
+        if (resultado == JFileChooser.APPROVE_OPTION) {
+            archivoSeleccionado[0] = fileChooser.getSelectedFile();
+            labelArchivoSeleccionado.setText("Archivo: " + archivoSeleccionado[0].getName());
+        }
+    });
+
+    // Acción para enviar correo
+    botonEnviar.addActionListener(e -> {
+        String destinatario = campoDestinatario.getText().trim();
+
+        if (destinatario.isEmpty()) {
+            JOptionPane.showMessageDialog(ventanaEnvio, "Por favor, ingresa un correo válido.");
+            return;
+        }
+
+        if (archivoSeleccionado[0] == null) {
+            JOptionPane.showMessageDialog(ventanaEnvio, "Selecciona un archivo antes de enviar.");
+            return;
+        }
+
+        enviarCorreoConAdjunto(destinatario, archivoSeleccionado[0]);
+    });
+
+    // Acción para cancelar
+    botonCancelar.addActionListener(e -> ventanaEnvio.dispose());
+
+    // Agregar componentes a la ventana
+    ventanaEnvio.add(labelDestinatario);
+    ventanaEnvio.add(campoDestinatario);
+    ventanaEnvio.add(botonSeleccionarArchivo);
+    ventanaEnvio.add(labelArchivoSeleccionado);
+    ventanaEnvio.add(botonEnviar);
+    ventanaEnvio.add(botonCancelar);
+
+    ventanaEnvio.setVisible(true);
+}
+
+private static void enviarCorreoConAdjunto(String destinatario, File archivoAdjunto) {
+
+    String remitente = "fl9840856@gmail.com";
+    String contraseña = "ahop zirn xora orlx"; // Si usas una contraseña de aplicación, cámbiala aquí
+
+    Properties props = new Properties();
+    props.put("mail.smtp.host", "smtp.gmail.com");
+    props.put("mail.smtp.port", "587");
+    props.put("mail.smtp.auth", "true");
+    props.put("mail.smtp.starttls.enable", "true"); // O usa 465 y "mail.smtp.ssl.enable" para SSL
+
+    Session session = Session.getInstance(props, new Authenticator() {
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return new PasswordAuthentication(remitente, contraseña);
+        }
+    });
+
+    try {
+        session.setDebug(true); // Habilitar depuración
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(remitente));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destinatario));
+        message.setSubject("Archivo adjunto");
+
+        // Verificar archivo
+        if (archivoAdjunto == null || !archivoAdjunto.exists()) {
+            JOptionPane.showMessageDialog(null, "El archivo no existe.");
+            return;
+        }
+
+        // Contenido del correo
+        MimeBodyPart parteTexto = new MimeBodyPart();
+        parteTexto.setText("Adjunto el archivo solicitado.");
+
+        MimeBodyPart parteAdjunto = new MimeBodyPart();
+        parteAdjunto.attachFile(archivoAdjunto);
+
+        Multipart multipart = new MimeMultipart();
+        multipart.addBodyPart(parteTexto);
+        multipart.addBodyPart(parteAdjunto);
+
+        message.setContent(multipart);
+
+        // Enviar correo
+        Transport.send(message);
+        JOptionPane.showMessageDialog(null, "Correo enviado exitosamente con el archivo adjunto.");
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, "Error al enviar el correo: " + e.getMessage());
+        e.printStackTrace(); // Para depurar la excepción con más detalles
+    }
+}
+
+METODO PARA PODER ENVIAR EL CORREO AL CLIENTE DE SU LICENCIA
+
+
+public static void mostrarLicenciasParaPDF(JFrame ventanaAnterior) {
+
+    JFrame ventanaLicencias = new JFrame("Seleccionar Licencia para Descargar PDF");
+    ventanaLicencias.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    ventanaLicencias.setSize(800, 400);
+    ventanaLicencias.setLocationRelativeTo(null);
+
+    try {
+        String sql = "SELECT * FROM licencias";
+        Statement statement = conexion.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+
+        String[] columnas = {"No. Licencia", "Nombre", "Edad", "CURP", "Nacionalidad", "Tipo Vehículo", "Tipo Sangre", "Expedición", "Vigencia"};
+        ArrayList<String[]> datos = new ArrayList<>();
+
+        while (resultSet.next()) {
+            String numeroLicencia = String.valueOf(resultSet.getInt("numero_licencia"));
+            String nombre = resultSet.getString("nombre_apellidos");
+            String edad = String.valueOf(resultSet.getInt("edad"));
+            String curp = resultSet.getString("curp");
+            String nacionalidad = resultSet.getString("nacionalidad");
+            String tipoVehiculo = resultSet.getString("tipo_vehiculo");
+            String tipoSangre = resultSet.getString("tipo_sangre");
+            String fechaExpedicion = resultSet.getString("fecha_expedicion");
+            String fechaVigencia = resultSet.getString("fecha_vigencia");
+
+            datos.add(new String[]{numeroLicencia, nombre, edad, curp, nacionalidad, tipoVehiculo, tipoSangre, fechaExpedicion, fechaVigencia});
+        }
+
+        String[][] datosArray = datos.toArray(new String[0][]);
+        JTable tabla = new JTable(datosArray, columnas);
+        JScrollPane scrollPane = new JScrollPane(tabla);
+
+        JPanel panelBotones = new JPanel();
+        JButton botonDescargar = new JButton("Descargar PDF");
+        JButton botonRegresar = new JButton("Regresar");
+
+        botonDescargar.addActionListener(e -> {
+            int filaSeleccionada = tabla.getSelectedRow();
+            if (filaSeleccionada != -1) {
+                String nombreLicencia = tabla.getValueAt(filaSeleccionada, 1).toString(); // Nombre del titular
+                String numeroLicencia = tabla.getValueAt(filaSeleccionada, 0).toString(); // Número de licencia
+                String edad = tabla.getValueAt(filaSeleccionada, 2).toString();
+                String curp = tabla.getValueAt(filaSeleccionada, 3).toString();
+                String nacionalidad = tabla.getValueAt(filaSeleccionada, 4).toString();
+                String tipoVehiculo = tabla.getValueAt(filaSeleccionada, 5).toString();
+                String tipoSangre = tabla.getValueAt(filaSeleccionada, 6).toString();
+                String fechaExpedicion = tabla.getValueAt(filaSeleccionada, 7).toString();
+                String fechaVigencia = tabla.getValueAt(filaSeleccionada, 8).toString();
+
+                // Seleccionar foto
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Seleccionar Foto del Conductor");
+                int resultado = fileChooser.showOpenDialog(null);
+                File foto = null;
+                if (resultado == JFileChooser.APPROVE_OPTION) {
+                    foto = fileChooser.getSelectedFile();
+                }
+
+                // Generar PDF para la licencia seleccionada
+                generarPDFLicencia(numeroLicencia, nombreLicencia, edad, curp, nacionalidad, tipoVehiculo, tipoSangre, fechaExpedicion, fechaVigencia, foto);
+            } else {
+                JOptionPane.showMessageDialog(ventanaLicencias, "Por favor, selecciona una licencia.");
+            }
+        });
+
+        botonRegresar.addActionListener(e -> {
+            ventanaLicencias.dispose();
+            ventanaAnterior.setVisible(true);
+        });
+
+        panelBotones.add(botonDescargar);
+        panelBotones.add(botonRegresar);
+
+        ventanaLicencias.setLayout(new BorderLayout());
+        ventanaLicencias.add(scrollPane, BorderLayout.CENTER);
+        ventanaLicencias.add(panelBotones, BorderLayout.SOUTH);
+
+        ventanaLicencias.setVisible(true);
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(null, "Error al obtener licencias.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+    
+    public static void generarPDFLicencia(String numeroLicencia, String nombreLicencia, String edad,
+                                      String curp, String nacionalidad, String tipoVehiculo,
+                                      String tipoSangre, String fechaExpedicion, String fechaVencimiento,
+                                      File foto) {
+    try {
+        // Crear un documento PDF
+        PDDocument documento = new PDDocument();
+        PDPage pagina = new PDPage(PDRectangle.A4);
+        documento.addPage(pagina);
+
+        // Cargar fuente personalizada
+        File archivoFuente = new File("C:\\Windows\\Fonts\\Arial.ttf");
+        if (!archivoFuente.exists()) {
+            JOptionPane.showMessageDialog(null, "No se encontró la fuente Arial.ttf en la ruta especificada.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        PDFont fuente = PDType0Font.load(documento, archivoFuente);
+
+        // Cargar imagen de la foto (si existe)
+        PDImageXObject imagenFoto = null;
+        if (foto != null && foto.exists()) {
+            imagenFoto = PDImageXObject.createFromFileByExtension(foto, documento);
+        }
+
+        // Crear el contenido de la licencia
+        try (PDPageContentStream contenido = new PDPageContentStream(documento, pagina)) {
+            // Borde o marco principal
+            contenido.addRect(30, 645, 535, 180); // Ajuste del cuadro principal
+            contenido.stroke();
+
+            // Foto del conductor (opcional)
+            if (imagenFoto != null) {
+                contenido.drawImage(imagenFoto, 40, 700, 100, 100); // Posición y tamaño de la foto
+            }
+
+            // Encabezado
+            contenido.beginText();
+            contenido.setFont(fuente, 16);
+            contenido.newLineAtOffset(150, 800); // Posición del encabezado
+            contenido.showText("LICENCIA DE CONDUCIR");
+            contenido.endText();
+
+            // Información de la licencia
+            contenido.beginText();
+            contenido.setFont(fuente, 12);
+            contenido.setLeading(14.5f);
+            contenido.newLineAtOffset(150, 770); // Ajustar posición inicial del texto
+            contenido.showText("Licencia No.: " + numeroLicencia);
+            contenido.newLine();
+            contenido.showText("Nombre: " + nombreLicencia);
+            contenido.newLine();
+            contenido.showText("Edad: " + edad + " años");
+            contenido.newLine();
+            contenido.showText("CURP: " + curp);
+            contenido.newLine();
+            contenido.showText("Nacionalidad: " + nacionalidad);
+            contenido.newLine();
+            contenido.showText("Tipo de Vehículo: " + tipoVehiculo);
+            contenido.newLine();
+            contenido.showText("Tipo de Sangre: " + tipoSangre);
+            contenido.newLine();
+            contenido.showText("Fecha de Expedición: " + fechaExpedicion);
+            contenido.newLine();
+            contenido.showText("Fecha de Vencimiento: " + fechaVencimiento);
+            contenido.endText();
+
+            // Descripción adicional debajo del cuadro
+            contenido.beginText();
+            contenido.setFont(fuente, 10);
+            contenido.newLineAtOffset(30, 620); // Posición para la descripción
+            contenido.showText("Licensuper licencias activa, gobierno del estado de Oaxaca");
+            contenido.endText();
+        }
+
+        // Guardar el archivo PDF
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar Licencia como PDF");
+        fileChooser.setAcceptAllFileFilterUsed(false);
+        fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("Archivos PDF", "pdf"));
+        int resultado = fileChooser.showSaveDialog(null);
+
+        if (resultado == JFileChooser.APPROVE_OPTION) {
+            File archivo = fileChooser.getSelectedFile();
+            if (!archivo.getName().endsWith(".pdf")) {
+                archivo = new File(archivo.getAbsolutePath() + ".pdf");
+            }
+
+            documento.save(archivo);
+            JOptionPane.showMessageDialog(null, "PDF guardado con éxito en:\n" + archivo.getAbsolutePath());
+        }
+
+        documento.close();
+    } catch (IOException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(null, "Error al generar el PDF.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+ESTE METODO LO QUE HACE ES QUE TE DEJA VER LOS REGISTROS EN PDF PARA QUE SE PUEDAN DESCARGAR
   
